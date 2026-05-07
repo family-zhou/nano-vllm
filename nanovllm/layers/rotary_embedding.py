@@ -8,6 +8,10 @@ def apply_rotary_emb(
     cos: torch.Tensor,
     sin: torch.Tensor,
 ) -> torch.Tensor:
+    """
+    x1 = x[..., 0::2]
+    x2 = x[..., 1::2]
+    """
     x1, x2 = torch.chunk(x.float(), 2, dim=-1)
     y1 = x1 * cos - x2 * sin
     y2 = x2 * cos + x1 * sin
@@ -28,7 +32,7 @@ class RotaryEmbedding(nn.Module):
         assert rotary_dim == head_size
         inv_freq = 1.0 / (base**(torch.arange(0, rotary_dim, 2, dtype=torch.float) / rotary_dim))
         t = torch.arange(max_position_embeddings, dtype=torch.float)
-        freqs = torch.einsum("i,j -> ij", t, inv_freq)
+        freqs = torch.einsum("i,j -> ij", t, inv_freq) # freqs = t[:, None] * inv_freq[None, :]
         cos = freqs.cos()
         sin = freqs.sin()
         cache = torch.cat((cos, sin), dim=-1).unsqueeze_(1)

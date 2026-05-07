@@ -23,7 +23,7 @@ class LLMEngine:
         self.events = []
         ctx = mp.get_context("spawn")
         for i in range(1, config.tensor_parallel_size):
-            event = ctx.Event()
+            event = ctx.Event() # 跨进程同步信号
             process = ctx.Process(target=ModelRunner, args=(config, i, event))
             process.start()
             self.ps.append(process)
@@ -44,7 +44,7 @@ class LLMEngine:
         if isinstance(prompt, str):
             prompt = self.tokenizer.encode(prompt)
         seq = Sequence(prompt, sampling_params)
-        self.scheduler.add(seq)
+        self.scheduler.add(seq) # 将seq 放到 waiting队列
 
     def step(self):
         seqs, is_prefill = self.scheduler.schedule()

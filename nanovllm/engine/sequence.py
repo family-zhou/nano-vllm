@@ -15,20 +15,24 @@ class Sequence:
     block_size = 256
     counter = count()
 
+
+    """
+    初始化的时候，会生成一个seq_id，并设置为等待状态
+    """
     def __init__(self, token_ids: list[int], sampling_params = SamplingParams()):
         self.seq_id = next(Sequence.counter)
         self.status = SequenceStatus.WAITING
-        self.token_ids = copy(token_ids)
+        self.token_ids = copy(token_ids) # 复制token_ids，避免修改原始数据
         self.last_token = token_ids[-1]
-        self.num_tokens = len(self.token_ids)
-        self.num_prompt_tokens = len(token_ids)
-        self.num_cached_tokens = 0
-        self.num_scheduled_tokens = 0
-        self.is_prefill = True
-        self.block_table = []
-        self.temperature = sampling_params.temperature
-        self.max_tokens = sampling_params.max_tokens
-        self.ignore_eos = sampling_params.ignore_eos
+        self.num_tokens = len(self.token_ids) # 总token数量
+        self.num_prompt_tokens = len(token_ids) # prompt token数量
+        self.num_cached_tokens = 0 # 缓存token数量
+        self.num_scheduled_tokens = 0 # 调度token数量
+        self.is_prefill = True # 是否是预填充阶段
+        self.block_table = [] # 物理块表
+        self.temperature = sampling_params.temperature # 温度
+        self.max_tokens = sampling_params.max_tokens # 最大token数
+        self.ignore_eos = sampling_params.ignore_eos # 是否忽略EOS
 
     def __len__(self):
         return self.num_tokens
@@ -54,15 +58,15 @@ class Sequence:
 
     @property
     def num_blocks(self):
-        return (self.num_tokens + self.block_size - 1) // self.block_size
+        return (self.num_tokens + self.block_size - 1) // self.block_size # 向上取整
 
     @property
     def last_block_num_tokens(self):
-        return self.num_tokens - (self.num_blocks - 1) * self.block_size
+        return self.num_tokens - (self.num_blocks - 1) * self.block_size # 最后一个blk中的token数量
 
     def block(self, i):
         assert 0 <= i < self.num_blocks
-        return self.token_ids[i*self.block_size: (i+1)*self.block_size]
+        return self.token_ids[i*self.block_size: (i+1)*self.block_size] # 返回第i个blk的token_ids
 
     def append_token(self, token_id: int):
         self.token_ids.append(token_id)

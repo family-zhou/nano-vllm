@@ -16,13 +16,18 @@ def store_kvcache_kernel(
     k_cache_ptr,
     v_cache_ptr,
     slot_mapping_ptr,
-    D: tl.constexpr,
+    D: tl.constexpr, # 每个 Token 对应的 K/V 数据长度 (num_heads * head_dim)，编译期常量
 ):
+    # get pid
     idx = tl.program_id(0)
+    # 查表， 当前第 idx 个 Token 应该放到全局物理池的哪个槽位 (slot)
     slot = tl.load(slot_mapping_ptr + idx)
+    # 如果槽位为-1，说明这个Token不应该被缓存，直接返回
     if slot == -1: return
+    # 计算key和value的偏移量
     key_offsets = idx * key_stride + tl.arange(0, D)
     value_offsets = idx * value_stride + tl.arange(0, D)
+    # 加载key和value
     key = tl.load(key_ptr + key_offsets)
     value = tl.load(value_ptr + value_offsets)
     cache_offsets = slot * D + tl.arange(0, D)
